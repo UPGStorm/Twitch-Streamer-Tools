@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stream Dashboard - Wheel Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="admin.css">
+    <style>
+        #topbar {
+            position: fixed;
+            top: 0;
+            left: 250px;
+            right: 0;
+            height: 56px;
+            background-color: #1e1e2f;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 0 24px;
+            z-index: 100;
+            border-bottom: 1px solid #33334d;
+        }
+
+        #main-content {
+            margin-left: 250px;
+            padding: 20px;
+            margin-top: 56px;
+        }
+
+        .profile-wrap { position: relative; }
+
+        .profile-btn {
+            background: #33334d;
+            border: 1px solid #555;
+            border-radius: 50%;
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .profile-btn:hover { border-color: #9146ff; background: #3e3e5f; }
+        .profile-btn svg { width: 20px; height: 20px; fill: #ccc; }
+
+        .profile-dropdown {
+            display: none;
+            position: absolute;
+            top: 48px;
+            right: 0;
+            background: #2b2b3f;
+            border: 1px solid #555;
+            border-radius: 8px;
+            min-width: 180px;
+            padding: 12px 16px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            z-index: 200;
+        }
+
+        .profile-dropdown.open { display: block; }
+        .profile-dropdown .label { font-size: 0.75rem; color: #888; margin-bottom: 4px; }
+
+        .profile-dropdown .username {
+            font-size: 1rem;
+            font-weight: bold;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .profile-dropdown .username::before {
+            content: '';
+            display: inline-block;
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: #4ade80;
+            flex-shrink: 0;
+        }
+
+        .profile-dropdown hr { border-color: #444; margin: 10px 0; }
+
+        .profile-dropdown a {
+            display: block;
+            color: #ccc;
+            font-size: 0.875rem;
+            text-decoration: none;
+            padding: 4px 0;
+            transition: color 0.15s;
+        }
+
+        .profile-dropdown a:hover { color: #fff; }
+
+        .form-control {
+            background-color: #2b2b3f;
+            border: 1px solid #555;
+            color: #fff;
+        }
+
+        .form-control:focus {
+            background-color: #2b2b3f;
+            border-color: #9146ff;
+            color: #fff;
+            box-shadow: 0 0 0 0.2rem rgba(145, 70, 255, 0.25);
+        }
+
+        .form-control::placeholder { color: #888; }
+
+        .color-dot {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            margin-right: 8px;
+            vertical-align: middle;
+            flex-shrink: 0;
+        }
+
+        #historyList {
+            max-height: 320px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #555 #2b2b3f;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            background: #2b2b3f;
+            font-size: 0.875rem;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .history-item .hi-label { font-weight: 600; color: #fff; flex: 1; }
+        .history-item .hi-time { color: #888; font-size: 0.78rem; white-space: nowrap; }
+
+        .history-empty {
+            color: #666;
+            font-size: 0.875rem;
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .spin-badge {
+            font-size: 0.7rem;
+            padding: 2px 7px;
+            border-radius: 20px;
+            background: #9146ff33;
+            color: #b47aff;
+            border: 1px solid #9146ff55;
+            white-space: nowrap;
+        }
+
+        .test-badge {
+            font-size: 0.7rem;
+            padding: 2px 7px;
+            border-radius: 20px;
+            background: #f59e0b22;
+            color: #fbbf24;
+            border: 1px solid #f59e0b44;
+            white-space: nowrap;
+        }
+
+        #testSpinBtn.spinning {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+<div id="sidebar">
+    <h3 class="text-center text-white">Stream Tools</h3>
+    <a href="/admin/index.html">Dashboard</a>
+    <a href="/admin/wheel.html" style="background-color: #33334d; color: #fff;">Wheel Manager</a>
+    <a href="/admin/settings.html">Settings</a>
+    <a href="#">Stats</a>
+    <a href="/admin/users.html" id="adminNavItem" style="display:none;">User Management</a>
+    <a href="#" id="logoutBtn" style="position:absolute; bottom:20px; width:100%; text-align:center;">Log Out</a>
+</div>
+
+<div id="topbar">
+    <div class="profile-wrap">
+        <div class="profile-btn" id="profileBtn" title="Profile">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+            </svg>
+        </div>
+        <div class="profile-dropdown" id="profileDropdown">
+            <div class="label">Signed in as</div>
+            <div class="username" id="profileUsername">...</div>
+            <hr>
+            <a href="/admin/settings.html">Settings</a>
+            <a href="#" id="dropdownLogout">Log Out</a>
+        </div>
+    </div>
+</div>
+
+<div id="main-content">
+    <h2>Wheel Manager</h2>
+
+    <div class="row g-3">
+
+        <div class="col-lg-7">
+
+            <div class="card mb-3 p-3">
+                <h5>Add New Category</h5>
+                <form id="addCategoryForm">
+                    <div class="row g-2">
+                        <div class="col-8">
+                            <input type="text" class="form-control" placeholder="Category Name" required>
+                        </div>
+                        <div class="col-4">
+                            <input type="number" class="form-control" placeholder="Weight" min="1" max="10" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary mt-2">Add Category</button>
+                </form>
+            </div>
+
+            <div class="card p-3">
+                <h5>Current Categories</h5>
+                <table class="table table-dark table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Label</th>
+                            <th>Weight</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="categoryTable"></tbody>
+                </table>
+            </div>
+
+            <div class="card mt-3 p-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="mb-0">Browser Source URL</h5>
+                    <button class="btn btn-outline-warning btn-sm" id="testSpinBtn">🎡 Test Spin</button>
+                </div>
+                <input type="text" class="form-control" id="browserSourceUrl" readonly placeholder="Loading...">
+                <div id="testSpinResult" class="mt-2" style="font-size:0.85rem; min-height:20px;"></div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card p-3 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">Spin History</h5>
+                    <button class="btn btn-outline-secondary" id="clearHistory" style="font-size:0.8rem; padding:3px 10px;">Clear</button>
+                </div>
+                <div id="historyList">
+                    <div class="history-empty" id="historyEmpty">No spins yet.</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const COLOURS = [
+        '#e74c3c','#e67e22','#f1c40f','#2ecc71','#1abc9c',
+        '#3498db','#9b59b6','#e91e63','#00bcd4','#8bc34a',
+        '#ff5722','#607d8b','#ff9800','#673ab7','#009688'
+    ];
+    let colourIndex = 0;
+    const categoryColours = {};
+    const loadedCategories = [];
+
+    function nextColour() { return COLOURS[colourIndex++ % COLOURS.length]; }
+    function getColour(id) {
+        if (!categoryColours[id]) categoryColours[id] = nextColour();
+        return categoryColours[id];
+    }
+
+    // ── Persistent history via localStorage ──
+    // Key is per-user, set after /api/me loads
+    let HISTORY_KEY = 'spinHistory';
+    const MAX_HISTORY = 100;
+
+    function saveHistory(items) {
+        try {
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(items));
+        } catch(e) {}
+    }
+
+    function loadHistory() {
+        try {
+            return JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+        } catch(e) { return []; }
+    }
+
+    // In-memory history array (newest first)
+    let historyItems = [];
+
+    function renderHistory() {
+        const historyList = document.getElementById('historyList');
+        const historyEmpty = document.getElementById('historyEmpty');
+        historyList.innerHTML = '';
+
+        if (historyItems.length === 0) {
+            historyList.appendChild(historyEmpty);
+            historyEmpty.style.display = 'block';
+            return;
+        }
+
+        historyEmpty.style.display = 'none';
+        historyItems.forEach((item, i) => {
+            const el = document.createElement('div');
+            el.className = 'history-item';
+            el.innerHTML = `
+                <span class="color-dot" style="background:${item.colour || '#9146ff'}"></span>
+                <span class="hi-label">${item.label}</span>
+                ${item.isTest
+                    ? `<span class="test-badge">Test</span>`
+                    : `<span class="spin-badge">#${historyItems.length - i}</span>`
+                }
+                <span class="hi-time">${item.time}</span>
+            `;
+            historyList.appendChild(el);
+        });
+    }
+
+    function addHistoryItem(label, colour, isTest = false) {
+        const now = new Date();
+        const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        // Prepend newest first
+        historyItems.unshift({ label, colour, isTest, time });
+
+        // Cap at MAX_HISTORY
+        if (historyItems.length > MAX_HISTORY) historyItems = historyItems.slice(0, MAX_HISTORY);
+
+        saveHistory(historyItems);
+        renderHistory();
+    }
+
+    document.getElementById('clearHistory').onclick = () => {
+        historyItems = [];
+        saveHistory(historyItems);
+        renderHistory();
+    };
+
+    // ── Category table ──
+    const categoryTable = document.getElementById('categoryTable');
+    const addCategoryForm = document.getElementById('addCategoryForm');
+    const labelInput = addCategoryForm.elements[0];
+    const weightInput = addCategoryForm.elements[1];
+
+    let currentUserId = null;
+
+    async function loadCategories() {
+        try {
+            const res = await fetch('/api/categories', { credentials: 'include' });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const categories = await res.json();
+            categoryTable.innerHTML = '';
+            loadedCategories.length = 0;
+            categories.forEach(cat => addCategoryToTable(cat));
+        } catch (err) {
+            console.error('Failed to load categories:', err);
+        }
+    }
+
+    function addCategoryToTable(cat) {
+        if (categoryTable.querySelector(`tr[data-id="${cat._id}"]`)) return;
+        const colour = getColour(cat._id);
+        loadedCategories.push(cat);
+
+        const tr = document.createElement('tr');
+        tr.dataset.id = cat._id;
+        tr.innerHTML = `
+            <td>
+                <span class="color-dot" style="background:${colour}"></span>
+                ${cat.label}
+            </td>
+            <td>${cat.weight}</td>
+            <td><button class="btn btn-sm btn-danger">Delete</button></td>
+        `;
+        tr.querySelector('button').onclick = async () => {
+            try {
+                const res = await fetch(`/api/categories/${cat._id}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                tr.remove();
+                delete categoryColours[cat._id];
+                const idx = loadedCategories.findIndex(c => c._id === cat._id);
+                if (idx >= 0) loadedCategories.splice(idx, 1);
+            } catch (err) {
+                console.error('Failed to delete category:', err);
+            }
+        };
+        categoryTable.appendChild(tr);
+    }
+
+    addCategoryForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const label = labelInput.value.trim();
+        const weight = parseInt(weightInput.value, 10);
+        if (!label || isNaN(weight) || weight <= 0) return;
+
+        try {
+            const res = await fetch('/api/categories', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ label, weight })
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const newCat = await res.json();
+            addCategoryToTable(newCat);
+            addCategoryForm.reset();
+        } catch (err) {
+            console.error('Failed to add category:', err);
+        }
+    });
+
+    // ── Weighted random ──
+    function pickWeightedRandom(cats) {
+        const total = cats.reduce((sum, c) => sum + c.weight, 0);
+        let rand = Math.random() * total;
+        for (const cat of cats) {
+            rand -= cat.weight;
+            if (rand <= 0) return cat;
+        }
+        return cats[cats.length - 1];
+    }
+
+    // ── Test Spin ──
+    // Only emits the socket event. History is logged when the 'spin' event
+    // comes back from the server — same path as a real Twitch spin.
+    const testSpinBtn = document.getElementById('testSpinBtn');
+    const testSpinResult = document.getElementById('testSpinResult');
+
+    testSpinBtn.onclick = () => {
+        if (loadedCategories.length === 0) {
+            testSpinResult.textContent = '⚠ Add at least one category before testing.';
+            testSpinResult.style.color = '#f87171';
+            return;
+        }
+
+        const winner = pickWeightedRandom(loadedCategories);
+
+        // Emit to server — server echoes it back as a 'spin' event
+        // which our socket.on('spin') below will handle (logs history once)
+        socket.emit('testSpin', { winner: winner.label, userId: currentUserId, isTest: true });
+
+        testSpinResult.innerHTML = `
+            <span class="color-dot" style="background:${getColour(winner._id)}; display:inline-block;"></span>
+            Spinning to: <strong>${winner.label}</strong>
+        `;
+        testSpinResult.style.color = '#4ade80';
+
+        testSpinBtn.classList.add('spinning');
+        testSpinBtn.textContent = '⏳ Spinning...';
+        setTimeout(() => {
+            testSpinBtn.classList.remove('spinning');
+            testSpinBtn.innerHTML = '🎡 Test Spin';
+            testSpinResult.textContent = '';
+        }, 4500);
+    };
+
+    // ── Socket.IO ──
+    const socket = io();
+
+    socket.on('categories', (cats) => {
+        cats.forEach(cat => addCategoryToTable(cat));
+    });
+
+    socket.on('category-deleted', ({ id }) => {
+        const tr = categoryTable.querySelector(`tr[data-id="${id}"]`);
+        if (tr) tr.remove();
+        delete categoryColours[id];
+        const idx = loadedCategories.findIndex(c => c._id === id);
+        if (idx >= 0) loadedCategories.splice(idx, 1);
+    });
+
+    // Single source of truth for history logging — handles both test and real spins
+    socket.on('spin', (data) => {
+        const label = data.category || data.winner || 'Spin';
+        const cat = loadedCategories.find(c => c.label === label);
+        const colour = cat ? getColour(cat._id) : '#9146ff';
+        addHistoryItem(label, colour, data.isTest === true);
+    });
+
+    // ── Profile + init ──
+    fetch('/api/me', { credentials: 'include' })
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('profileUsername').textContent = data.username;
+            currentUserId = data.userId;
+
+            // Set per-user localStorage key so history is separate per user
+            HISTORY_KEY = `spinHistory_${data.userId}`;
+            historyItems = loadHistory();
+            renderHistory();
+
+            if (data.role === 'admin') {
+                document.getElementById('adminNavItem').style.display = 'block';
+            }
+
+            if (data.wheelKey) {
+                const url = `${window.location.protocol}//${window.location.host}/wheel/mainWheel?key=${data.wheelKey}`;
+                document.getElementById('browserSourceUrl').value = url;
+            } else {
+                document.getElementById('browserSourceUrl').placeholder = 'No key — go to Settings to generate one';
+            }
+
+            socket.emit('joinAdmin', currentUserId);
+        });
+
+    const profileBtn = document.getElementById('profileBtn');
+    const profileDropdown = document.getElementById('profileDropdown');
+
+    profileBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        profileDropdown.classList.toggle('open');
+    });
+
+    document.addEventListener('click', () => profileDropdown.classList.remove('open'));
+
+    async function doLogout() {
+        const res = await fetch('/logout', { method: 'POST', credentials: 'include' });
+        if (res.ok) window.location.href = '/login.html';
+        else alert('Logout failed.');
+    }
+
+    document.getElementById('logoutBtn').onclick = (e) => { e.preventDefault(); doLogout(); };
+    document.getElementById('dropdownLogout').onclick = (e) => { e.preventDefault(); doLogout(); };
+
+    loadCategories();
+</script>
+
+</body>
+</html>
