@@ -20,14 +20,16 @@ A simple Twitch Channel Points Wheel manager with a browser source and admin das
 ## Installation
 
 1. Clone the repository:
-     git clone <repo_url>
-     cd Twitch-Site
+   git clone <repo_url>
+   cd Twitch-Site
 2. Install dependencies:
-    npm install
+   npm install
 3. Start the server:
-     npm start
+   npm start
 4. Access page:
-     Username: admin
-     Password: admin
-     http://localhost:3000/admin
+   http://localhost:3000/admin
+5. Login:
+  Username: admin
+  Password: admin
+
 
