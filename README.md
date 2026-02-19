@@ -27,4 +27,7 @@ A simple Twitch Channel Points Wheel manager with a browser source and admin das
 3. Start the server:
      npm start
 4. Access page:
+     Username: admin
+     Password: admin
      http://localhost:3000/admin
+
