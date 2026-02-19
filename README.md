@@ -19,17 +19,24 @@ A simple Twitch Channel Points Wheel manager with a browser source and admin das
 
 ## Installation
 
-1. Clone the repository:
-   git clone <repo_url>
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/UPGStorm/Twitch-Streamer-Tools
    cd Twitch-Site
-2. Install dependencies:
+2. **Install dependencies:**
+   ```bash
    npm install
-3. Start the server:
+3. **Start the server:**
+   ```bash
    npm start
-4. Access page:
+4. **Access page:**
+   ```bash
    http://localhost:3000/admin
-5. Login:
-  Username: admin
-  Password: admin
+5. **Login:**
+   ```bash
+   Username: admin
+   Password: admin
 
+## License
 
+[MIT](https://choosealicense.com/licenses/mit/)
